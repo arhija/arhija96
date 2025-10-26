@@ -45,7 +45,7 @@ setupgungalarc() {
 		done
 		cd ..
 		echo "</ul>" >> ../permanav/${categoryname}/content.htm;
-		echo "<title>PIARHIJA - "${categoryname}"</title> <meta name='description' content='index of "${categoryname}"' />
+		echo "<title>ARHIJA - "${categoryname}"</title> <meta name='description' content='index of "${categoryname}"' />
 " >../permanav/${categoryname}/meta.htm;
 	echo "setup gungalarc -- DONE"
 	done
@@ -92,19 +92,41 @@ related() {
 
 
 lastpost() {
-  if [ "$f" == "home" ]; then
+  if [ "$f" = "home" ]; then
     if [ -d "home" ]; then
       cd home || { echo "Failed to enter 'home' directory"; return 1; }
-        if [ -f "content.htm" ] && [ -f "lastpost.txt" ]; then
-        last_post_content=$(<lastpost.txt)
-        sed -i '' '$d' "content.htm"  
-        clean_name="${last_post_content//_/ }" 
-         echo "<p>Latest post:<a href="${last_post_content}.html">${clean_name}</a></p>" >> "content.htm"
-        echo "Replaced the last line with new text in content.htm."
-      else
+
+      # Make sure required files exist
+      if [ ! -f "content.htm" ]; then
         echo "'content.htm' does not exist in 'home' directory!"
+        cd ..; return 1
       fi
-      cd .. || { echo "Failed to go back to the parent directory"; return 1; }
+
+      if [ ! -f "lastpost.txt" ]; then
+        echo "'lastpost.txt' not found — skipping update."
+        cd ..; return 0
+      fi
+
+      # Read the post name and clean it up
+      last_post_content=$(<lastpost.txt)
+      clean_name="${last_post_content//_/ }"
+
+      # Remove any existing "Latest post" lines
+      # Works on both Linux and macOS
+      if sed --version >/dev/null 2>&1; then
+        # GNU sed (Linux)
+        sed -i '/Latest post/d' "content.htm"
+      else
+        # BSD sed (macOS)
+        sed -i '' '/Latest post/d' "content.htm"
+      fi
+
+      # Append the new “Latest post” section
+      echo "<p>Latest post: <a href=\"${last_post_content}.html\">${clean_name}</a></p>" >> "content.htm"
+
+      echo "Updated latest post to '${last_post_content}' in home/content.htm"
+
+      cd .. || { echo "Failed to return to parent directory"; return 1; }
     else
       echo "'home' directory does not exist!"
     fi
@@ -112,6 +134,7 @@ lastpost() {
     echo "The folder '$f' is not 'home'. No action taken."
   fi
 }
+
 
 # Setup topics
 cd $content
